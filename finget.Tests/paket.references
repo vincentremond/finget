@@ -1,0 +1,8 @@
+group Tests
+FSharp.Core
+Microsoft.NET.Test.Sdk
+NUnit
+NUnit3TestAdapter
+NUnit.Analyzers
+Unquote
+coverlet.collector
