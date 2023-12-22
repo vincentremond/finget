@@ -7,78 +7,81 @@ type ColumnsSize = {
     LengthPackageId: int
     LengthVersion: int
     LengthMatch: int
-    LengthSource: int
-} with
-
-    member this.TotalWidth =
-        this.LengthName
-        + 1
-        + this.LengthPackageId
-        + 1
-        + this.LengthVersion
-        + 1
-        + this.LengthMatch
-        + 1
-        + this.LengthSource
+    HasSourceColumn: bool
+}
 
 [<RequireQualifiedAccess>]
 module WingetOutputParser =
 
-    open FParsec
-
     module private InnerParser =
 
-        let manySpaces = manyChars (pchar ' ')
+        let someSpaces = many1Chars (pchar ' ')
 
         let len str =
-            pipe2 (pstring str) manySpaces (fun a b -> a.Length + b.Length)
+            pipe2 (pstring str) someSpaces (fun a b -> a.Length + b.Length)
 
-        let parseFirstLine: Parser<ColumnsSize, unit> =
-            (pipe5
-                (len "Name")
-                (len "Id")
-                (len "Version")
-                (len "Match")
-                (len "Source")
-                (fun name id version ``match`` source -> {
-                    LengthName = name - 1
-                    LengthPackageId = id - 1
-                    LengthVersion = version - 1
-                    LengthMatch = ``match`` - 1
-                    LengthSource = source
-                }))
+        let parseFirstLine =
 
-        let parseDashRow (state: ColumnsSize) =
-            skipArray state.TotalWidth (skipChar '-')
+            pipe5
+                (pstring "Name" .>>. someSpaces)
+                (pstring "Id" .>>. someSpaces)
+                (pstring "Version" .>>. someSpaces)
+                (pstring "Match")
+                ((choice [
+                    ((someSpaces .>>. pstring "Source") |>> Some)
+                    (preturn None)
+                 ])
+                 .>> newline)
+                (fun (name, nameSpaces) (id, idSpaces) (version, versionSpaces) match_ choice ->
+                    let matchSpaces, hasSourceColumn =
+                        match choice with
+                        | Some(matchSpaces, _) -> matchSpaces.Length - 1, true
+                        | None -> 0, false
+
+                    {
+                        LengthName = name.Length + nameSpaces.Length - 1
+                        LengthPackageId = id.Length + idSpaces.Length - 1
+                        LengthVersion = version.Length + versionSpaces.Length - 1
+                        LengthMatch = match_.Length + matchSpaces
+                        HasSourceColumn = hasSourceColumn
+                    }
+                )
+
+        let parseDashRow = (many1Chars (pchar '-') .>>. newline) |>> ignore
 
         let parseResultLine state =
-            pipe5
-                (anyString state.LengthName
-                 .>> skipChar ' ')
-                (anyString state.LengthPackageId
-                 .>> skipChar ' ')
-                (anyString state.LengthVersion
-                 .>> skipChar ' ')
-                (anyString state.LengthMatch
-                 .>> skipChar ' ')
-                (anyString state.LengthSource)
-                (fun name id version ``match`` source -> {
-                    Name = name |> String.trimEnd
-                    PackageId = id |> String.trimEnd
-                    Version = version |> String.trimEnd
-                    Match = ``match`` |> String.trimEnd
-                    Source = source |> String.trimEnd
-                })
+            match state.HasSourceColumn with
+            | true ->
+                pipe5
+                    (anyString state.LengthName .>> skipChar ' ')
+                    (anyString state.LengthPackageId .>> skipChar ' ')
+                    (anyString state.LengthVersion .>> skipChar ' ')
+                    (anyString state.LengthMatch .>> skipChar ' ')
+                    (restOfLine false)
+                    (fun name id version ``match`` source -> {
+                        Name = name |> String.trimEnd
+                        PackageId = id |> String.trimEnd
+                        Version = version |> String.trimEnd
+                        Match = ``match`` |> String.trimEnd
+                        Source = source |> String.trimEnd |> Some
+                    })
+            | false ->
+                pipe4
+                    (anyString state.LengthName .>> skipChar ' ')
+                    (anyString state.LengthPackageId .>> skipChar ' ')
+                    (anyString state.LengthVersion .>> skipChar ' ')
+                    (restOfLine false)
+                    (fun name id version ``match`` -> {
+                        Name = name |> String.trimEnd
+                        PackageId = id |> String.trimEnd
+                        Version = version |> String.trimEnd
+                        Match = ``match`` |> String.trimEnd
+                        Source = None
+                    })
 
         let parser =
-            ((opt skipNewline)
-             >>. parseFirstLine
-             .>> newline)
-            >>= (fun columnsSize ->
-                (parseDashRow columnsSize)
-                >>. newline
-                >>. (sepBy1 (parseResultLine columnsSize) newline)
-            )
+            ((opt skipNewline) >>. parseFirstLine .>> parseDashRow)
+            >>= (fun columnsSize -> (sepBy1 (parseResultLine columnsSize) newline))
 
     let tryParse =
         String.trim

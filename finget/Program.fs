@@ -10,7 +10,12 @@ AnsiConsole.Write(
     |> Rule.withStyle Style.red
 )
 
-AnsiConsole.Write(FigletText(font, "Winget Searcher"))
+AnsiConsole.WriteLine()
+
+AnsiConsole.Write(
+    FigletText(font, "Winget Searcher")
+    |> FigletText.align Justify.Center
+)
 
 AnsiConsole.Write(
     Rule()
@@ -38,9 +43,7 @@ let searchCommand =
     ]
 
 let (exitCode, commandOutput, outputErrors) =
-    AnsiConsole.status
-        "Searching for packages..."
-        (fun ctx -> searchCommand |> Command.run)
+    AnsiConsole.status "Searching for packages..." (fun ctx -> searchCommand |> Command.run)
 
 if exitCode <> 0 then
     AnsiConsole.MarkupLine $"[red]Error:[/] %s{outputErrors}"
@@ -53,6 +56,7 @@ else
     | Ok packages ->
         AnsiConsole.MarkupLine $"[green]Found %d{packages.Length} packages[/]"
         AnsiConsole.WriteLine()
+
         let selectedPackage =
             AnsiConsole.Prompt(
                 SelectionPrompt<SearchResult>()
@@ -61,7 +65,7 @@ else
                 |> SelectionPrompt.addChoices packages
                 |> SelectionPrompt.useConverter (fun p -> $"{p.PackageId} (version {p.Version})")
             )
-        
+
         let installCommand =
             "winget.exe",
             [
@@ -72,12 +76,10 @@ else
                 "winget"
                 "--disable-interactivity"
             ]
-        
+
         let (exitCode, stdOut, StdErr) =
-            AnsiConsole.status
-                $"Installing %s{selectedPackage.PackageId}..."
-                (fun ctx -> installCommand |> Command.run)
-        
+            AnsiConsole.status $"Installing %s{selectedPackage.PackageId}..." (fun ctx -> installCommand |> Command.run)
+
         if exitCode <> 0 then
             AnsiConsole.MarkupLine $"[red]Error:[/] %s{StdErr}"
         else

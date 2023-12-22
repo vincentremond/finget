@@ -36,4 +36,9 @@ module SelectionPrompt =
     // useConverter
     let useConverter (converter: 'a -> string) (prompt: SelectionPrompt<'a>) =
         prompt.UseConverter(converter)
-        
+
+[<RequireQualifiedAccess>]
+module FigletText =
+    let align (justify: Justify) (figlet: FigletText) = 
+        figlet.Justification <- justify
+        figlet
