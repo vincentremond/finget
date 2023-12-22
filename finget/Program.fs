@@ -51,7 +51,7 @@ else
     let packages = WingetOutputParser.tryParse commandOutput
 
     match packages with
-    | Error error -> AnsiConsole.MarkupLine $"[red]Failed to parse winget output.[/] Error: %s{error}"
+    | Error error -> AnsiConsole.MarkupLine $"[red]Failed to parse winget output.[/] Error: %s{error}\n%s{commandOutput}"
     | Ok [] -> AnsiConsole.MarkupLine "[yellow]No packages found[/]"
     | Ok packages ->
         AnsiConsole.MarkupLine $"[green]Found %d{packages.Length} packages[/]"

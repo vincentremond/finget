@@ -85,6 +85,8 @@ module WingetOutputParser =
 
     let tryParse =
         String.trim
+        >> String.trimStartChars '-'
+        >> String.trim
         >> run InnerParser.parser
         >> function
             | Success(result, _, _) -> Result.Ok result
