@@ -1,87 +1,101 @@
-﻿open Spectre.Console
+﻿open System
+open Spectre.Console
 open finget
 
 let fontSource = FSharp.Data.LiteralProviders.TextFile.``ANSI-Shadow.flf``.Text
 let font = FigletFont.Parse(fontSource)
 
 // Banner
-AnsiConsole.Write(
-    Rule()
-    |> Rule.withStyle Style.red
-)
+AnsiConsole.Write(Rule() |> Rule.withStyle Style.red)
+
+AnsiConsole.WriteLine()
+AnsiConsole.WriteLine()
+
+AnsiConsole.Write(FigletText(font, "Winget Searcher") |> FigletText.align Justify.Center)
+
+AnsiConsole.Write(Rule() |> Rule.withStyle Style.red)
 
 AnsiConsole.WriteLine()
 
-AnsiConsole.Write(
-    FigletText(font, "Winget Searcher")
-    |> FigletText.align Justify.Center
-)
+let esc = Markup.Escape
 
-AnsiConsole.Write(
-    Rule()
-    |> Rule.withStyle Style.red
-)
+let implode (strings: string seq) = strings |> String.concat " "
 
-AnsiConsole.WriteLine()
+let displayCommand (command: Command) =
+    let executable, arguments = command
+    AnsiConsole.MarkupLine $"[grey]%s{esc executable}[/] %s{esc (implode arguments)}"
 
-let searchFor = AnsiConsole.Ask<string>("What package do you want to search for? ")
+while true do
+    AnsiConsole.Write(Rule(DateTimeOffset.Now.ToString("U")) |> Rule.withStyle Style.red)
 
-let escapeArgument (argument: string) =
-    argument
-    |> String.replace "\"" "\\\""
-    |> sprintf "\"%s\""
+    let searchFor =
+        AnsiConsole.Prompt<string>(
+            TextPrompt<string>("What package do you want to install ? ")
+            |> TextPrompt.setStyle Style.yellow
+        )
 
-let searchCommand =
-    "winget.exe",
-    [
-        "search"
-        "--query"
-        searchFor
-        "--source"
-        "winget"
-        "--disable-interactivity"
-    ]
+    let searchCommand =
+        "winget.exe",
+        [
+            "search"
+            "--query"
+            searchFor
+            "--source"
+            "winget"
+            "--disable-interactivity"
+        ]
 
-let (exitCode, commandOutput, outputErrors) =
-    AnsiConsole.status "Searching for packages..." (fun ctx -> searchCommand |> Command.run)
+    displayCommand searchCommand
 
-if exitCode <> 0 then
-    AnsiConsole.MarkupLine $"[red]Error:[/] %s{outputErrors}"
-else
-    let packages = WingetOutputParser.tryParse commandOutput
+    let exitCode, commandOutput, outputErrors =
+        AnsiConsole.status $"Searching for [green]%s{esc searchFor}[/] ..." (fun _ -> searchCommand |> Command.run)
 
-    match packages with
-    | Error error -> AnsiConsole.MarkupLine $"[red]Failed to parse winget output.[/] Error: %s{error}\n%s{commandOutput}"
-    | Ok [] -> AnsiConsole.MarkupLine "[yellow]No packages found[/]"
-    | Ok packages ->
-        AnsiConsole.MarkupLine $"[green]Found %d{packages.Length} packages[/]"
-        AnsiConsole.WriteLine()
+    if exitCode <> 0 then
+        AnsiConsole.MarkupLine $"[red]Error:[/] %s{esc outputErrors}"
+    else
+        let packages = WingetOutputParser.tryParse commandOutput
 
-        let selectedPackage =
-            AnsiConsole.Prompt(
-                SelectionPrompt<SearchResult>()
-                |> SelectionPrompt.setTitle "Select a package to install"
-                |> SelectionPrompt.setPageSize 10
-                |> SelectionPrompt.addChoices packages
-                |> SelectionPrompt.useConverter (fun p -> $"{p.PackageId} (version {p.Version})")
-            )
+        match packages with
+        | Error error -> AnsiConsole.MarkupLine $"[red]Failed to parse winget output.[/] Error: %s{esc error}\n%s{commandOutput}"
+        | Ok [] -> AnsiConsole.MarkupLine "[yellow]No packages found[/]"
+        | Ok packages ->
+            AnsiConsole.MarkupLine $"Found [green]%d{packages.Length}[/] packages"
+            AnsiConsole.WriteLine()
 
-        let installCommand =
-            "winget.exe",
-            [
-                "install"
-                "--id"
-                selectedPackage.PackageId
-                "--source"
-                "winget"
-                "--disable-interactivity"
-            ]
+            let selectedPackage =
+                AnsiConsole.Prompt(
+                    SelectionPrompt<SearchResult>()
+                    |> SelectionPrompt.setTitle "Select a package to install"
+                    |> SelectionPrompt.setPageSize 15
+                    |> SelectionPrompt.addChoices packages
+                    |> SelectionPrompt.useConverter (fun p -> $"{p.PackageId} (version {p.Version})")
+                )
 
-        let (exitCode, stdOut, StdErr) =
-            AnsiConsole.status $"Installing %s{selectedPackage.PackageId}..." (fun ctx -> installCommand |> Command.run)
+            let installCommand =
+                "winget.exe",
+                [
+                    "install"
+                    "--id"
+                    selectedPackage.PackageId
+                    "--source"
+                    "winget"
+                    "--disable-interactivity"
+                ]
 
-        if exitCode <> 0 then
-            AnsiConsole.MarkupLine $"[red]Error:[/] %s{StdErr}"
-        else
-            AnsiConsole.MarkupLine $"[green]Successfully installed %s{selectedPackage.PackageId}[/]"
-            AnsiConsole.WriteLine(stdOut)
+            displayCommand searchCommand
+
+            let exitCode, stdOut, stdErr =
+                AnsiConsole.status $"Installing %s{selectedPackage.PackageId}..." (fun _ -> installCommand |> Command.run)
+
+            if exitCode <> 0 then
+                AnsiConsole.MarkupLine $"Failed to install [red]%s{esc selectedPackage.PackageId}[/] Error: %s{esc stdErr}"
+                AnsiConsole.Write(Rule("[red]errors[/]"))
+                AnsiConsole.WriteLine(stdOut)
+                AnsiConsole.Write(Rule("output"))
+                AnsiConsole.WriteLine(stdOut)
+                AnsiConsole.Write(Rule() |> Rule.withStyle Style.grey)
+            else
+                AnsiConsole.MarkupLine $"Successfully installed [green]%s{esc selectedPackage.PackageId}[/]"
+                AnsiConsole.Write(Rule("output") |> Rule.withStyle Style.grey)
+                AnsiConsole.WriteLine(stdOut)
+                AnsiConsole.Write(Rule() |> Rule.withStyle Style.grey)

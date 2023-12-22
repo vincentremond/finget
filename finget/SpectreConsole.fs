@@ -6,6 +6,8 @@ open Spectre.Console
 [<RequireQualifiedAccess>]
 module Style =
     let red = Style.Parse("red")
+    let yellow = Style.Parse("yellow")
+    let grey = Style.Parse("grey")
 
 [<RequireQualifiedAccess>]
 module Rule =
@@ -15,10 +17,7 @@ module Rule =
 
 [<RequireQualifiedAccess>]
 module AnsiConsole =
-    let status (text: string) (f: StatusContext -> 'a) : 'a =
-        AnsiConsole
-            .Status()
-            .Start(text, f)
+    let status (text: string) (f: StatusContext -> 'a) : 'a = AnsiConsole.Status().Start(text, f)
 
 [<RequireQualifiedAccess>]
 module SelectionPrompt =
@@ -31,14 +30,18 @@ module SelectionPrompt =
         prompt.PageSize <- pageSize
         prompt
     // addChoices
-    let addChoices (choices: 'a list) (prompt: SelectionPrompt<'a>) =
-        prompt.AddChoices(choices)
+    let addChoices (choices: 'a list) (prompt: SelectionPrompt<'a>) = prompt.AddChoices(choices)
     // useConverter
-    let useConverter (converter: 'a -> string) (prompt: SelectionPrompt<'a>) =
-        prompt.UseConverter(converter)
+    let useConverter (converter: 'a -> string) (prompt: SelectionPrompt<'a>) = prompt.UseConverter(converter)
 
 [<RequireQualifiedAccess>]
 module FigletText =
-    let align (justify: Justify) (figlet: FigletText) = 
+    let align (justify: Justify) (figlet: FigletText) =
         figlet.Justification <- justify
         figlet
+
+[<RequireQualifiedAccess>]
+module TextPrompt =
+    let setStyle (style: Style) (prompt: TextPrompt<'a>) =
+        prompt.PromptStyle <- style
+        prompt
