@@ -27,17 +27,17 @@ let displayCommand (command: Command) =
 
 // Get currently installed packages
 let installedPackages =
-    let command =
+    let listCommand =
         "winget.exe",
         [
             "list"
             "--disable-interactivity"
         ]
 
-    displayCommand command
+    displayCommand listCommand
 
     let exitCode, commandOutput, outputErrors =
-        AnsiConsole.status "Getting currently installed packages..." (fun _ -> command |> Command.run)
+        AnsiConsole.status "Getting currently installed packages..." (fun _ -> listCommand |> Command.run)
 
     if exitCode <> 0 then
         AnsiConsole.MarkupLine $"[red]Error:[/] %s{esc outputErrors}"
@@ -58,7 +58,7 @@ let installedPackages =
             AnsiConsole.MarkupLine $"Found [yellow]%d{packages.Length}[/] already installed packages"
             packages |> Map.ofSeqWithKey (fun p -> p.PackageId)
 
-while true do
+let rec loop (installedPackages: Map<string, InstalledPackage>) =
     AnsiConsole.Write(
         Rule(esc (DateTimeOffset.Now.ToString("u")))
         |> Rule.align Justify.Left
@@ -96,7 +96,8 @@ while true do
         | Error error ->
             AnsiConsole.MarkupLine $"[red]Failed to parse winget output.[/] Error: %s{esc error}\n%s{commandOutput}"
         | Ok [] -> AnsiConsole.MarkupLine "[yellow]No packages found[/]"
-        | Ok packages ->
+        | Ok packages' ->
+            let packages = packages' |> List.sortBy (fun p -> String.toLower p.PackageId)
             AnsiConsole.MarkupLine $"Found [green]%d{packages.Length}[/] packages"
             AnsiConsole.WriteLine()
 
@@ -130,42 +131,61 @@ while true do
 
             let selectedPackage =
                 AnsiConsole.Prompt(
-                    SelectionPrompt<SearchResult>()
+                    SelectionPrompt<SearchResult option>()
                     |> SelectionPrompt.setTitle "Select a package to install"
                     |> SelectionPrompt.setPageSize 4
-                    |> SelectionPrompt.addChoices packages
-                    |> SelectionPrompt.useConverter (fun p -> $"{p.PackageId} (version {p.Version})")
+                    |> SelectionPrompt.addChoices ((packages |> List.map Some) @ [ None ])
+                    |> SelectionPrompt.setWrapAround true
+                    |> SelectionPrompt.useConverter (
+                        function
+                        | Some p -> $"{p.PackageId} (version {p.Version})"
+                        | None -> "Cancel"
+                    )
                 )
 
-            let installCommand =
-                "winget.exe",
-                [
-                    "install"
-                    "--id"
-                    selectedPackage.PackageId
-                    "--source"
-                    "winget"
-                    "--disable-interactivity"
-                ]
+            match selectedPackage with
+            | None -> ()
+            | Some selectedPackage ->
 
-            displayCommand searchCommand
+                let installCommand =
+                    "winget.exe",
+                    [
+                        "install"
+                        "--id"
+                        selectedPackage.PackageId
+                        "--source"
+                        "winget"
+                        "--disable-interactivity"
+                    ]
 
-            let exitCode, stdOut, stdErr =
-                AnsiConsole.status
-                    $"Installing %s{selectedPackage.PackageId}..."
-                    (fun _ -> installCommand |> Command.run)
+                displayCommand installCommand
 
-            if exitCode <> 0 then
-                AnsiConsole.MarkupLine
-                    $"Failed to install [red]%s{esc selectedPackage.PackageId}[/] Error: %s{esc stdErr}"
+                let exitCode, stdOut, stdErr =
+                    AnsiConsole.status
+                        $"Installing %s{selectedPackage.PackageId}..."
+                        (fun _ -> installCommand |> Command.run)
 
-                AnsiConsole.Write(Rule("[red]errors[/]"))
-                AnsiConsole.WriteLine(stdOut)
-                AnsiConsole.Write(Rule("output"))
-                AnsiConsole.WriteLine(stdOut)
-                AnsiConsole.Write(Rule() |> Rule.withStyle Style.grey)
-            else
-                AnsiConsole.MarkupLine $"Successfully installed [green]%s{esc selectedPackage.PackageId}[/]"
-                AnsiConsole.Write(Rule("output") |> Rule.withStyle Style.grey)
-                AnsiConsole.WriteLine(stdOut)
-                AnsiConsole.Write(Rule() |> Rule.withStyle Style.grey)
+                if exitCode <> 0 then
+                    AnsiConsole.MarkupLine
+                        $"Failed to install [red]%s{esc selectedPackage.PackageId}[/] Error: %s{esc stdErr}"
+
+                    AnsiConsole.Write(Rule("[red]errors[/]"))
+                    AnsiConsole.WriteLine(stdOut)
+                    AnsiConsole.Write(Rule("output"))
+                    AnsiConsole.WriteLine(stdOut)
+                    AnsiConsole.Write(Rule() |> Rule.withStyle Style.grey)
+                else
+                    AnsiConsole.MarkupLine $"Successfully installed [green]%s{esc selectedPackage.PackageId}[/]"
+                    AnsiConsole.Write(Rule("output") |> Rule.withStyle Style.grey)
+                    AnsiConsole.WriteLine(stdOut)
+                    AnsiConsole.Write(Rule() |> Rule.withStyle Style.grey)
+
+                    let newInstalledPackages =
+                        installedPackages
+                        |> Map.add selectedPackage.PackageId selectedPackage.asInstalledPackage
+
+                    loop newInstalledPackages
+
+    loop installedPackages
+
+loop installedPackages

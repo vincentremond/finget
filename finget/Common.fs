@@ -9,6 +9,7 @@ module String =
     let trimStart (s: string) = s.TrimStart()
     let trimEnd (s: string) = s.TrimEnd()
     let replace (s: string) (old: string) (``new``: string) = s.Replace(old, ``new``)
+    let toLower (s: string) = s.ToLower()
 
 [<RequireQualifiedAccess>]
 module List =

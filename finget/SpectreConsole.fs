@@ -25,18 +25,19 @@ module AnsiConsole =
 
 [<RequireQualifiedAccess>]
 module SelectionPrompt =
-    // setTitle
     let setTitle (title: string) (prompt: SelectionPrompt<'a>) =
         prompt.Title <- title
         prompt
-    // setPageSize
     let setPageSize (pageSize: int) (prompt: SelectionPrompt<'a>) =
         prompt.PageSize <- pageSize
         prompt
-    // addChoices
     let addChoices (choices: 'a list) (prompt: SelectionPrompt<'a>) = prompt.AddChoices(choices)
-    // useConverter
     let useConverter (converter: 'a -> string) (prompt: SelectionPrompt<'a>) = prompt.UseConverter(converter)
+    let setWrapAround (wrapAround: bool) (prompt: SelectionPrompt<'a>) =
+        prompt.WrapAround <- wrapAround
+        prompt
+
+    
 
 [<RequireQualifiedAccess>]
 module FigletText =

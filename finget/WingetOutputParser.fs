@@ -107,39 +107,8 @@ module WingetOutputParser =
                 |>> List.map (fun values -> resultInitializer (colValue values))
             )
             .>> eof
-
-    let (|IsAscii|) (c: char) =
-        match Char.GetUnicodeCategory c with
-        | UnicodeCategory.UppercaseLetter -> true
-        | UnicodeCategory.LowercaseLetter -> true
-        | UnicodeCategory.TitlecaseLetter -> true
-        | UnicodeCategory.ModifierLetter -> true
-        | UnicodeCategory.OtherLetter -> true
-        | UnicodeCategory.LetterNumber -> true
-        | UnicodeCategory.DecimalDigitNumber -> true
-        | UnicodeCategory.OtherNumber -> true
-        | UnicodeCategory.SpaceSeparator -> true
-        | UnicodeCategory.LineSeparator -> true
-        | UnicodeCategory.ParagraphSeparator -> true
-        | UnicodeCategory.Control -> true
-        | UnicodeCategory.Format -> true
-        | UnicodeCategory.Surrogate -> true
-        | UnicodeCategory.PrivateUse -> true
-        | UnicodeCategory.ConnectorPunctuation -> true
-        | UnicodeCategory.DashPunctuation -> true
-        | UnicodeCategory.OpenPunctuation -> true
-        | UnicodeCategory.ClosePunctuation -> true
-        | UnicodeCategory.InitialQuotePunctuation -> true
-        | UnicodeCategory.FinalQuotePunctuation -> true
-        | UnicodeCategory.OtherPunctuation -> true
-        | UnicodeCategory.MathSymbol -> true
-        | UnicodeCategory.CurrencySymbol -> true
-        | UnicodeCategory.ModifierSymbol -> true
-        | UnicodeCategory.OtherSymbol -> true
-        | UnicodeCategory.OtherNotAssigned -> true
-        | _ -> false
-
     let tryReplaceUnhandledCharacters input =
+        // TODO this is a quick fix, a better solution would be decrease the lenght of the string of 1 for each CJK character.
         input |> Regex.replace "[\u4E00-\u9FFF]" "??" // CJK Unified Ideographs (Chinese, Japanese, Korean) creates problems
 
     let tryParse init =
