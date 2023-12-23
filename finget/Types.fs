@@ -6,4 +6,28 @@ type SearchResult = {
     Version: string
     Match: string
     Source: string
-}
+} with
+
+    static member init f = {
+        Name = f "Name"
+        PackageId = f "Id"
+        Version = f "Version"
+        Match = f "Match"
+        Source = f "Source"
+    }
+
+type InstalledPackage = {
+    Name: string
+    PackageId: string
+    Version: string
+    Available: string
+    Source: string
+} with
+
+    static member init f = {
+        Name = f "Name"
+        PackageId = f "Id"
+        Version = f "Version"
+        Available = f "Available"
+        Source = f "Source"
+    }

@@ -9,7 +9,7 @@ let Setup () = ()
 
 let test input expected =
 
-    let actual = WingetOutputParser.tryParse input
+    let actual = WingetOutputParser.tryParse SearchResult.init input
 
     match actual with
     | Ok results ->

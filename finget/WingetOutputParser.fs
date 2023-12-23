@@ -74,7 +74,7 @@ module WingetOutputParser =
 
         let parseResultLine columns = plist columns parseColumn
 
-        let colValue columns name valueList =
+        let colValue columns valueList name =
             let column = columns |> Map.tryFind name
 
             match column with
@@ -98,19 +98,13 @@ module WingetOutputParser =
 
         let parseHeader = parseFirstLine .>> parseDashRow
 
-        let parser =
+        let parser resultInitializer =
             skipFuzzyThingsBeforeHeader >>. parseHeader
             >>= (fun columns ->
                 let colValue = (colValue (columns |> Map.ofSeqWithKey (fun column -> column.Name)))
 
                 (sepBy1 (parseResultLine columns) newline)
-                |>> List.map (fun values -> {
-                    Name = colValue "Name" values
-                    PackageId = colValue "Id" values
-                    Version = colValue "Version" values
-                    Match = colValue "Match" values
-                    Source = colValue "Source" values
-                })
+                |>> List.map (fun values -> resultInitializer (colValue values))
             )
             .>> eof
 
@@ -145,18 +139,15 @@ module WingetOutputParser =
         | UnicodeCategory.OtherNotAssigned -> true
         | _ -> false
 
-        
-
     let tryReplaceUnhandledCharacters input =
-        input
-        |> Regex.replace "[\u4E00-\u9FFF]" "??" // CJK Unified Ideographs (Chinese, Japanese, Korean) creates problems
+        input |> Regex.replace "[\u4E00-\u9FFF]" "??" // CJK Unified Ideographs (Chinese, Japanese, Korean) creates problems
 
-    let tryParse =
+    let tryParse init =
         tryReplaceUnhandledCharacters
         >> String.trim
         >> String.trimStartChars '-'
         >> String.trim
-        >> run InnerParser.parser
+        >> run (InnerParser.parser init)
         >> function
             | Success(result, _, _) -> Result.Ok result
             | Failure(msg, _, _) -> Result.Error msg

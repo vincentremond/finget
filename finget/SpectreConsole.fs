@@ -14,6 +14,7 @@ module Rule =
     let withStyle style (rule: Rule) =
         rule.Style <- style
         rule
+
     let align (justify: Justify) (rule: Rule) =
         rule.Justification <- justify
         rule
@@ -48,3 +49,12 @@ module TextPrompt =
     let setStyle (style: Style) (prompt: TextPrompt<'a>) =
         prompt.PromptStyle <- style
         prompt
+
+[<RequireQualifiedAccess>]
+module Table =
+    open Spectre.Console.Rendering
+    let addColumns (columns: TableColumn seq) (table: Table) = table.AddColumns(Array.ofSeq columns)
+
+    let addRows (rows: IRenderable seq seq) (table: Table) =
+        rows |> Seq.iter (fun row -> table.Rows.Add(row) |> ignore)
+        table
