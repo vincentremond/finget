@@ -14,6 +14,9 @@ module Rule =
     let withStyle style (rule: Rule) =
         rule.Style <- style
         rule
+    let align (justify: Justify) (rule: Rule) =
+        rule.Justification <- justify
+        rule
 
 [<RequireQualifiedAccess>]
 module AnsiConsole =

@@ -26,7 +26,7 @@ let displayCommand (command: Command) =
     AnsiConsole.MarkupLine $"[grey]%s{esc executable}[/] %s{esc (implode arguments)}"
 
 while true do
-    AnsiConsole.Write(Rule(DateTimeOffset.Now.ToString("U")) |> Rule.withStyle Style.red)
+    AnsiConsole.Write(Rule(esc (DateTimeOffset.Now.ToString("u"))) |> Rule.align Justify.Left |> Rule.withStyle Style.grey)
 
     let searchFor =
         AnsiConsole.Prompt<string>(

@@ -2,12 +2,11 @@
 
 open FParsec
 
-type ColumnsSize = {
-    LengthName: int
-    LengthPackageId: int
-    LengthVersion: int
-    LengthMatch: int
-    HasSourceColumn: bool
+type Column = {
+    Name: string
+    Index: int
+    StartColumn: int
+    Length: int option
 }
 
 [<RequireQualifiedAccess>]
@@ -17,71 +16,72 @@ module WingetOutputParser =
 
         let someSpaces = many1Chars (pchar ' ')
 
-        let len str =
-            pipe2 (pstring str) someSpaces (fun a b -> a.Length + b.Length)
+        let word =
+            many1Chars (
+                noneOf [
+                    ' '
+                    '\n'
+                    '\r'
+                    '\t'
+                ]
+            )
 
-        let parseFirstLine =
+        let plist (list: 'a list) (parametrizedParser: 'a -> Parser<'b, 'c>) : Parser<'b list, 'c> =
+            list
+            |> List.map parametrizedParser
+            |> List.fold
+                (fun state parser -> (state .>>. parser) |>> (fun (state, item) -> state @ [ item ]))
+                (preturn [])
 
-            pipe5
-                (pstring "Name" .>>. someSpaces)
-                (pstring "Id" .>>. someSpaces)
-                (pstring "Version" .>>. someSpaces)
-                (pstring "Match")
-                ((choice [
-                    ((someSpaces .>>. pstring "Source") |>> Some)
-                    (preturn None)
-                 ])
-                 .>> newline)
-                (fun (name, nameSpaces) (id, idSpaces) (version, versionSpaces) match_ choice ->
-                    let matchSpaces, hasSourceColumn =
-                        match choice with
-                        | Some(matchSpaces, _) -> matchSpaces.Length - 1, true
-                        | None -> 0, false
+        let (!?) p = getPosition .>>. p
 
-                    {
-                        LengthName = name.Length + nameSpaces.Length - 1
-                        LengthPackageId = id.Length + idSpaces.Length - 1
-                        LengthVersion = version.Length + versionSpaces.Length - 1
-                        LengthMatch = match_.Length + matchSpaces
-                        HasSourceColumn = hasSourceColumn
-                    }
-                )
+        let parseFirstLine: Parser<Column list, unit> =
+            (sepBy1 (!?word) someSpaces) .>> newline
+            |>> (fun columns ->
+                let cols = columns |> List.pairwise'
+
+                cols
+                |> List.mapi (fun index ((position, name), next) -> {
+                    Name = name
+                    Index = index
+                    StartColumn = (int position.Column)
+                    Length =
+                        (next
+                         |> Option.map (fun (nextPosition, _) -> int nextPosition.Index - int position.Index))
+                })
+            )
 
         let parseDashRow = (many1Chars (pchar '-') .>>. newline) |>> ignore
 
-        let parseResultLine state =
-            match state.HasSourceColumn with
-            | true ->
-                pipe5
-                    (anyString state.LengthName .>> skipChar ' ')
-                    (anyString state.LengthPackageId .>> skipChar ' ')
-                    (anyString state.LengthVersion .>> skipChar ' ')
-                    (anyString state.LengthMatch .>> skipChar ' ')
-                    (restOfLine false)
-                    (fun name id version ``match`` source -> {
-                        Name = name |> String.trimEnd
-                        PackageId = id |> String.trimEnd
-                        Version = version |> String.trimEnd
-                        Match = ``match`` |> String.trimEnd
-                        Source = source |> String.trimEnd |> Some
-                    })
-            | false ->
-                pipe4
-                    (anyString state.LengthName .>> skipChar ' ')
-                    (anyString state.LengthPackageId .>> skipChar ' ')
-                    (anyString state.LengthVersion .>> skipChar ' ')
-                    (restOfLine false)
-                    (fun name id version ``match`` -> {
-                        Name = name |> String.trimEnd
-                        PackageId = id |> String.trimEnd
-                        Version = version |> String.trimEnd
-                        Match = ``match`` |> String.trimEnd
-                        Source = None
-                    })
+        let parseColumn column =
+            match column.Length with
+            | Some length -> anyString length |>> String.trimEnd
+            | None -> restOfLine false
+
+        let parseResultLine columns = plist columns parseColumn
+
+        let colValue columns name valueList =
+            let column = columns |> Map.tryFind name
+
+            match column with
+            | None -> ""
+            | Some column -> valueList |> List.item column.Index |> String.trim
 
         let parser =
             ((opt skipNewline) >>. parseFirstLine .>> parseDashRow)
-            >>= (fun columnsSize -> (sepBy1 (parseResultLine columnsSize) newline))
+            >>= (fun columns ->
+                let colValue = (colValue (columns |> Map.ofSeqWithKey (fun column -> column.Name)))
+
+                (sepBy1 (parseResultLine columns) newline)
+                |>> List.map (fun values -> {
+                    Name = colValue "Name" values
+                    PackageId = colValue "Id" values
+                    Version = colValue "Version" values
+                    Match = colValue "Match" values
+                    Source = colValue "Source" values
+                })
+            )
+            .>> eof
 
     let tryParse =
         String.trim

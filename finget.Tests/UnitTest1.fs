@@ -27,21 +27,21 @@ Java SE Development Kit 11   Oracle.JDK                          14.1           
                 PackageId = "7zip.7zip"
                 Version = "1.9.0"
                 Match = "Moniker: 7zip"
-                Source = Some "winget"
+                Source = "winget"
             }
             {
                 Name = "Microsoft Visual Studio Code"
                 PackageId = "Microsoft.VisualStudioCode"
                 Version = "1.54.3"
                 Match = "Tag: vscode"
-                Source = Some "winget"
+                Source = "winget"
             }
             {
                 Name = "Java SE Development Kit 11"
                 PackageId = "Oracle.JDK"
                 Version = "14.1"
                 Match = ""
-                Source = Some "winget"
+                Source = "winget"
             }
         ]
 
@@ -69,35 +69,101 @@ JetBrains Rider           JetBrains.Rider         2023.3.1     Moniker: rider
                 PackageId = "JetBrains.ReSharper.EAP"
                 Version = "2021.2 EAP 8"
                 Match = "Tag: rider"
-                Source = None
+                Source = ""
             }
             {
                 Name = "JetBrains ReSharper"
                 PackageId = "JetBrains.ReSharper"
                 Version = "2023.2.3"
                 Match = "Tag: rider"
-                Source = None
+                Source = ""
             }
             {
                 Name = "dotUltimate"
                 PackageId = "JetBrains.dotUltimate"
                 Version = "2023.1.4"
                 Match = "Tag: rider"
-                Source = None
+                Source = ""
             }
             {
                 Name = "JetBrains Rider (EAP)"
                 PackageId = "JetBrains.Rider.EAP"
                 Version = "233.9802.20"
                 Match = ""
-                Source = None
+                Source = ""
             }
             {
                 Name = "JetBrains Rider"
                 PackageId = "JetBrains.Rider"
                 Version = "2023.3.1"
                 Match = "Moniker: rider"
-                Source = None
+                Source = ""
+            }
+        ]
+
+    printfn $"%A{actual}"
+    
+    Differ.Assert(expected, actual)
+
+[<Test>]
+let Test3 () =
+
+    let actual =
+        WingetOutputParser.tryParse
+            """
+Name                           Id                           Version
+--------------------------------------------------------------------------------
+Microsoft .NET SDK 8.0 Preview Microsoft.DotNet.SDK.Preview 8.0.100-rc.2.23502.2
+Microsoft .NET SDK 8.0         Microsoft.DotNet.SDK.8       8.0.100
+Microsoft .NET SDK 7.0         Microsoft.DotNet.SDK.7       7.0.404
+Microsoft .NET SDK 6.0         Microsoft.DotNet.SDK.6       6.0.417
+Microsoft .NET SDK 5.0         Microsoft.DotNet.SDK.5       5.0.408
+Microsoft .NET SDK 3.1         Microsoft.DotNet.SDK.3_1     3.1.426
+"""
+
+    let expected =
+        Ok [
+            {
+                Name = "Microsoft .NET SDK 8.0 Preview"
+                PackageId = "Microsoft.DotNet.SDK.Preview"
+                Version = "8.0.100-rc.2.23502.2"
+                Match = ""
+                Source = ""
+            }
+            {
+                Name = "Microsoft .NET SDK 8.0"
+                PackageId = "Microsoft.DotNet.SDK.8"
+                Version = "8.0.100"
+                Match = ""
+                Source = ""
+            }
+            {
+                Name = "Microsoft .NET SDK 7.0"
+                PackageId = "Microsoft.DotNet.SDK.7"
+                Version = "7.0.404"
+                Match = ""
+                Source = ""
+            }
+            {
+                Name = "Microsoft .NET SDK 6.0"
+                PackageId = "Microsoft.DotNet.SDK.6"
+                Version = "6.0.417"
+                Match = ""
+                Source = ""
+            }
+            {
+                Name = "Microsoft .NET SDK 5.0"
+                PackageId = "Microsoft.DotNet.SDK.5"
+                Version = "5.0.408"
+                Match = ""
+                Source = ""
+            }
+            {
+                Name = "Microsoft .NET SDK 3.1"
+                PackageId = "Microsoft.DotNet.SDK.3_1"
+                Version = "3.1.426"
+                Match = ""
+                Source = ""
             }
         ]
 

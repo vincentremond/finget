@@ -5,5 +5,5 @@ type SearchResult = {
     PackageId: string
     Version: string
     Match: string
-    Source: string option
+    Source: string
 }
