@@ -1,0 +1,5 @@
+root = false
+
+[*.fs]
+fsharp_max_record_number_of_items = 10
+max_line_length = 240

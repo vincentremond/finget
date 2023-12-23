@@ -11,8 +11,12 @@ type Column = {
 
 [<RequireQualifiedAccess>]
 module WingetOutputParser =
+    open System.Text
+    open System
+    open System.Globalization
 
     module private InnerParser =
+        open System
 
         let someSpaces = many1Chars (pchar ' ')
 
@@ -53,9 +57,19 @@ module WingetOutputParser =
 
         let parseDashRow = (many1Chars (pchar '-') .>>. newline) |>> ignore
 
+        // alternative to `anyString` that doesn't consume the newline
+        let anyString' length =
+            manyMinMaxSatisfy
+                0
+                length
+                (function
+                | '\n' -> false
+                | _ -> true
+                )
+
         let parseColumn column =
             match column.Length with
-            | Some length -> anyString length |>> String.trimEnd
+            | Some length -> anyString' length |>> String.trimEnd
             | None -> restOfLine false
 
         let parseResultLine columns = plist columns parseColumn
@@ -67,8 +81,25 @@ module WingetOutputParser =
             | None -> ""
             | Some column -> valueList |> List.item column.Index |> String.trim
 
+        let skipBlankLine = manyChars (pchar ' ') .>> newline |>> ignore
+
+        let notLetter = satisfy (fun c -> not (Char.IsLetter c))
+        let skipNotLetter = notLetter |>> ignore
+
+        let skipLineNotStartingWithALetter = skipNotLetter >>. skipRestOfLine true
+
+        let skipFuzzyThingsBeforeHeader =
+            skipMany (
+                choice [
+                    attempt skipBlankLine
+                    skipLineNotStartingWithALetter
+                ]
+            )
+
+        let parseHeader = parseFirstLine .>> parseDashRow
+
         let parser =
-            ((opt skipNewline) >>. parseFirstLine .>> parseDashRow)
+            skipFuzzyThingsBeforeHeader >>. parseHeader
             >>= (fun columns ->
                 let colValue = (colValue (columns |> Map.ofSeqWithKey (fun column -> column.Name)))
 
@@ -83,8 +114,46 @@ module WingetOutputParser =
             )
             .>> eof
 
+    let (|IsAscii|) (c: char) =
+        match Char.GetUnicodeCategory c with
+        | UnicodeCategory.UppercaseLetter -> true
+        | UnicodeCategory.LowercaseLetter -> true
+        | UnicodeCategory.TitlecaseLetter -> true
+        | UnicodeCategory.ModifierLetter -> true
+        | UnicodeCategory.OtherLetter -> true
+        | UnicodeCategory.LetterNumber -> true
+        | UnicodeCategory.DecimalDigitNumber -> true
+        | UnicodeCategory.OtherNumber -> true
+        | UnicodeCategory.SpaceSeparator -> true
+        | UnicodeCategory.LineSeparator -> true
+        | UnicodeCategory.ParagraphSeparator -> true
+        | UnicodeCategory.Control -> true
+        | UnicodeCategory.Format -> true
+        | UnicodeCategory.Surrogate -> true
+        | UnicodeCategory.PrivateUse -> true
+        | UnicodeCategory.ConnectorPunctuation -> true
+        | UnicodeCategory.DashPunctuation -> true
+        | UnicodeCategory.OpenPunctuation -> true
+        | UnicodeCategory.ClosePunctuation -> true
+        | UnicodeCategory.InitialQuotePunctuation -> true
+        | UnicodeCategory.FinalQuotePunctuation -> true
+        | UnicodeCategory.OtherPunctuation -> true
+        | UnicodeCategory.MathSymbol -> true
+        | UnicodeCategory.CurrencySymbol -> true
+        | UnicodeCategory.ModifierSymbol -> true
+        | UnicodeCategory.OtherSymbol -> true
+        | UnicodeCategory.OtherNotAssigned -> true
+        | _ -> false
+
+        
+
+    let tryReplaceUnhandledCharacters input =
+        input
+        |> Regex.replace "[\u4E00-\u9FFF]" "??" // CJK Unified Ideographs (Chinese, Japanese, Korean) creates problems
+
     let tryParse =
-        String.trim
+        tryReplaceUnhandledCharacters
+        >> String.trim
         >> String.trimStartChars '-'
         >> String.trim
         >> run InnerParser.parser

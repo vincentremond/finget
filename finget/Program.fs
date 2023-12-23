@@ -5,7 +5,7 @@ open finget
 let fontSource = FSharp.Data.LiteralProviders.TextFile.``ANSI-Shadow.flf``.Text
 let font = FigletFont.Parse(fontSource)
 
-// Banner
+AnsiConsole.Clear()
 AnsiConsole.Write(Rule() |> Rule.withStyle Style.red)
 
 AnsiConsole.WriteLine()
