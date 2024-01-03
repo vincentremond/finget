@@ -160,25 +160,16 @@ let rec loop (installedPackages: Map<string, InstalledPackage>) =
 
                 displayCommand installCommand
 
-                let exitCode, stdOut, stdErr =
+                let exitCode =
                     AnsiConsole.status
                         $"Installing %s{selectedPackage.PackageId}..."
-                        (fun _ -> installCommand |> Command.run)
+                        (fun _ -> installCommand |> Command.popup)
 
                 if exitCode <> 0 then
                     AnsiConsole.MarkupLine
-                        $"Failed to install [red]%s{esc selectedPackage.PackageId}[/] Error: %s{esc stdErr}"
-
-                    AnsiConsole.Write(Rule("[red]errors[/]"))
-                    AnsiConsole.WriteLine(stdOut)
-                    AnsiConsole.Write(Rule("output"))
-                    AnsiConsole.WriteLine(stdOut)
-                    AnsiConsole.Write(Rule() |> Rule.withStyle Style.grey)
+                        $"Failed to install [red]%s{esc selectedPackage.PackageId}[/] Exit code : %i{exitCode}"
                 else
                     AnsiConsole.MarkupLine $"Successfully installed [green]%s{esc selectedPackage.PackageId}[/]"
-                    AnsiConsole.Write(Rule("output") |> Rule.withStyle Style.grey)
-                    AnsiConsole.WriteLine(stdOut)
-                    AnsiConsole.Write(Rule() |> Rule.withStyle Style.grey)
 
                     let newInstalledPackages =
                         installedPackages

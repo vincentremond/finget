@@ -37,3 +37,24 @@ module Command =
         childProcess.WaitForExit()
 
         childProcess.ExitCode, output, error
+
+    let popup (command: Command) : ExitCode =
+        let executable, arguments = command
+
+        use childProcess =
+            new Process(
+                StartInfo =
+                    ProcessStartInfo(
+                        executable,
+                        arguments,
+                        UseShellExecute = true,
+                        RedirectStandardOutput = false,
+                        RedirectStandardError = false,
+                        CreateNoWindow = false
+                    )
+            )
+
+        childProcess.Start() |> ignore
+        childProcess.WaitForExit()
+
+        childProcess.ExitCode
