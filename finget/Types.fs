@@ -1,5 +1,7 @@
 ﻿namespace finget
 
+type PropertyReader = string -> string
+
 type InstalledPackage = {
     Name: string
     PackageId: string
@@ -8,12 +10,12 @@ type InstalledPackage = {
     Source: string
 } with
 
-    static member init f = {
-        Name = f "Name"
-        PackageId = f "Id"
-        Version = f "Version"
-        Available = f "Available"
-        Source = f "Source"
+    static member init (propertyReader: PropertyReader) = {
+        Name = propertyReader "Name"
+        PackageId = propertyReader "Id"
+        Version = propertyReader "Version"
+        Available = propertyReader "Available"
+        Source = propertyReader "Source"
     }
 
 type SearchResult = {
