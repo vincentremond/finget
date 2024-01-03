@@ -11,9 +11,7 @@ type Column = {
 
 [<RequireQualifiedAccess>]
 module WingetOutputParser =
-    open System.Text
     open System
-    open System.Globalization
 
     module private InnerParser =
         open System
@@ -98,7 +96,7 @@ module WingetOutputParser =
 
         let parseHeader = parseFirstLine .>> parseDashRow
 
-        let parser resultInitializer =
+        let parser (resultInitializer: PropertyReader -> 'a) =
             skipFuzzyThingsBeforeHeader >>. parseHeader
             >>= (fun columns ->
                 let colValue = (colValue (columns |> Map.ofSeqWithKey (fun column -> column.Name)))
@@ -111,7 +109,7 @@ module WingetOutputParser =
         // TODO this is a quick fix, a better solution would be decrease the lenght of the string of 1 for each CJK character.
         input |> Regex.replace "[\u4E00-\u9FFF]" "??" // CJK Unified Ideographs (Chinese, Japanese, Korean) creates problems
 
-    let tryParse init =
+    let tryParse (init: PropertyReader -> 'a) : string -> Result<'a list,string> =
         tryReplaceUnhandledCharacters
         >> String.trim
         >> String.trimStartChars '-'
