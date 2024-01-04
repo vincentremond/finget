@@ -156,6 +156,7 @@ let rec loop (installedPackages: Map<string, InstalledPackage>) =
                         "--source"
                         "winget"
                         "--disable-interactivity"
+                        "--wait"
                     ]
 
                 displayCommand installCommand
