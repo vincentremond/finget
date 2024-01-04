@@ -28,16 +28,17 @@ module SelectionPrompt =
     let setTitle (title: string) (prompt: SelectionPrompt<'a>) =
         prompt.Title <- title
         prompt
+
     let setPageSize (pageSize: int) (prompt: SelectionPrompt<'a>) =
         prompt.PageSize <- pageSize
         prompt
+
     let addChoices (choices: 'a list) (prompt: SelectionPrompt<'a>) = prompt.AddChoices(choices)
     let useConverter (converter: 'a -> string) (prompt: SelectionPrompt<'a>) = prompt.UseConverter(converter)
+
     let setWrapAround (wrapAround: bool) (prompt: SelectionPrompt<'a>) =
         prompt.WrapAround <- wrapAround
         prompt
-
-    
 
 [<RequireQualifiedAccess>]
 module FigletText =

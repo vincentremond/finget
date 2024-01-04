@@ -105,15 +105,18 @@ module WingetOutputParser =
                 |>> List.map (fun values -> resultInitializer (colValue values))
             )
             .>> eof
-        let parser f = choice [
-            ((pstring "No package found matching input criteria." .>> eof) |>> (fun _ -> []))
-            resultsParser f
-        ]
+
+        let parser f =
+            choice [
+                ((pstring "No package found matching input criteria." .>> eof) |>> (fun _ -> []))
+                resultsParser f
+            ]
+
     let tryReplaceUnhandledCharacters input =
         // TODO this is a quick fix, a better solution would be decrease the lenght of the string of 1 for each CJK character.
         input |> Regex.replace "[\u4E00-\u9FFF]" "??" // CJK Unified Ideographs (Chinese, Japanese, Korean) creates problems
 
-    let tryParse (init: PropertyReader -> 'a) : string -> Result<'a list,string> =
+    let tryParse (init: PropertyReader -> 'a) : string -> Result<'a list, string> =
         tryReplaceUnhandledCharacters
         >> String.trim
         >> String.trimStartChars '-'

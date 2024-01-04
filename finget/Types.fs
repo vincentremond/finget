@@ -10,7 +10,7 @@ type InstalledPackage = {
     Source: string
 } with
 
-    static member init (propertyReader: PropertyReader) = {
+    static member init(propertyReader: PropertyReader) = {
         Name = propertyReader "Name"
         PackageId = propertyReader "Id"
         Version = propertyReader "Version"
@@ -34,11 +34,10 @@ type SearchResult = {
         Source = f "Source"
     }
 
-    member this.asInstalledPackage =
-        {
-            Name = this.Name
-            PackageId = this.PackageId
-            Version = this.Version
-            Available = ""
-            Source = this.Source
-        }
+    member this.asInstalledPackage = {
+        Name = this.Name
+        PackageId = this.PackageId
+        Version = this.Version
+        Available = ""
+        Source = this.Source
+    }
