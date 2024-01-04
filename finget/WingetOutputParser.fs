@@ -96,7 +96,7 @@ module WingetOutputParser =
 
         let parseHeader = parseFirstLine .>> parseDashRow
 
-        let parser (resultInitializer: PropertyReader -> 'a) =
+        let resultsParser (resultInitializer: PropertyReader -> 'a) =
             skipFuzzyThingsBeforeHeader >>. parseHeader
             >>= (fun columns ->
                 let colValue = (colValue (columns |> Map.ofSeqWithKey (fun column -> column.Name)))
@@ -105,6 +105,10 @@ module WingetOutputParser =
                 |>> List.map (fun values -> resultInitializer (colValue values))
             )
             .>> eof
+        let parser f = choice [
+            ((pstring "No package found matching input criteria." .>> eof) |>> (fun _ -> []))
+            resultsParser f
+        ]
     let tryReplaceUnhandledCharacters input =
         // TODO this is a quick fix, a better solution would be decrease the lenght of the string of 1 for each CJK character.
         input |> Regex.replace "[\u4E00-\u9FFF]" "??" // CJK Unified Ideographs (Chinese, Japanese, Korean) creates problems

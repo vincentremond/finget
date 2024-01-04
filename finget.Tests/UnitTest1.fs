@@ -142,3 +142,7 @@ Inssist                                               SlashedIo.Inssist         
     ]
 
     test input expected
+
+[<Test>]
+let Test5 () =
+    test """No package found matching input criteria.""" []
