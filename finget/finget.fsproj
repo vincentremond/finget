@@ -11,8 +11,6 @@
     <Content Include="ANSI-Shadow.flf" />
     <Compile Include="Common.fs" />
     <Compile Include="SpectreConsole.fs" />
-    <Compile Include="Types.fs" />
-    <Compile Include="WingetOutputParser.fs" />
     <Compile Include="Command.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
