@@ -3,4 +3,4 @@
 dotnet tool restore
 dotnet build -- %*
 
-add-to-path .\finget\bin\Debug\
+AddToPath .\finget\bin\Debug\
